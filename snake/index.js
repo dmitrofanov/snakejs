@@ -8,6 +8,8 @@ import path from 'path'
 import http from 'http'
 import { Server } from 'socket.io'
 import { Random } from './random.js'
+import {includes, isEqualCoords} from './search.js'
+
 
 // const dir = __dirname
 const file = 'index.html'
@@ -17,18 +19,25 @@ const WWIDTH = 1600,
 			CELLSIZE = 50,
 			BOARDWIDTH = WWIDTH / CELLSIZE - 1,
 			BOARDHEIGHT = WHEIGHT / CELLSIZE - 1,
-			NUMOBSTACLES = 5,
+			NUMOBSTACLES = 0,
 			RIGHT = 'right',
 			LEFT = 'left',
 			UP = 'up',
 			DOWN = 'down',
-			FPS = 10
+			FPS = 10,
+			BONUSCHANCE = 1/3,
+			BONUSTIME = 30,
+			COLORS = ['green', 'pink', 'orange', 'yellow', 'white', 'black']
+
+let bonusRemaining = 0
 
 const state = {}
 state.obstacles = []
 state.snakes = []
+state.food = [2, 2]
 
 createObstacles()
+placeFood()
 
 const server = http.createServer	((req, res) => {
 	let file = req.url === '/' ? 'index.html' : path.basename(req.url)//path.join(dir, req.url)
@@ -71,6 +80,7 @@ function addSnake(id) {
 	const snake = {id}
 	snake.coords = [[2, 2], [3, 2], [4, 2], [5, 2]]
 	snake.direction = LEFT
+	snake.color = Random.nextElement(COLORS)
 	state.snakes.push(snake)
 }
 
@@ -80,7 +90,7 @@ function removeSnake(id) {
 }
 
 function changeDirection(id, direction) {
-	console.log('changeDirection', id, direction)
+	// console.log('changeDirection', id, direction)
 	state.snakes.filter((snake) => snake.id === id)[0].direction = direction
 }
 
@@ -89,6 +99,8 @@ function calcNextFrameAndSendState() {
 	state.snakes.forEach((snake) => {
 		// console.log(snake)
 		moveSnake(snake)
+		checkCollision(snake)
+		decreaseBonusTime()
 	})
 	io.emit('state', state)
 }
@@ -131,7 +143,58 @@ function moveHead(snake) {
 	snake.coords.splice(0, 0, head)
 }
 
+function onFood(snake) {
+	let head = snake.coords[0]
+	return isEqualCoords(head, state.food)
+}
+
 function moveSnake(snake) {
 	moveHead(snake)
-	snake.coords.pop()
+	if (onFood(snake)) {
+		placeFood()
+	} else if (onBonus(snake)) {
+		let tail = snake.coords[snake.coords.length - 1]
+		snake.coords.push(tail)
+		snake.coords.push(tail)
+		state.bonus = null
+	} else {
+		snake.coords.pop()
+	}
+}
+
+function placeFood() {
+	state.food = getRandomCoords()
+	while (includes(state.obstacles, state.food) || state.snakes.some((snake) => includes(snake.coords, state.food))) state.food = getRandomCoords()
+	placeBonus()
+}
+
+function checkCollision(snake) {
+	let truncateSnake = () => { snake.coords = snake.coords.filter((seg, index) => index < 4) }
+	let processCollision = () => {
+		truncateSnake()
+	}
+	let head = snake.coords[0]
+	if (includes(snake.coords.filter((seg, index) => index > 0), head)
+			|| includes(state.obstacles, head)
+			|| state.snakes.filter((sn) => sn.id !== snake.id).some((sn) => includes(sn.coords, head)))	 processCollision()
+}
+
+function placeBonus() {
+	if (Random.nextDouble(0, 1) < BONUSCHANCE) {
+		state.bonus = getRandomCoords()
+		while(includes(state.obstacles, state.bonus)
+					|| isEqualCoords(state.bonus, state.food)
+					|| state.snakes.some((sn) => includes(sn.coords, state.bonus))) state.bonus = getRandomCoords()
+		bonusRemaining = BONUSTIME
+	}
+}
+
+function onBonus(snake) {
+	if (state.bonus == null) return false
+	return isEqualCoords(state.bonus, snake.coords[0])
+}
+
+function decreaseBonusTime() {
+	if (bonusRemaining > 0) bonusRemaining -= 1
+	if (bonusRemaining === 0) state.bonus = null
 }

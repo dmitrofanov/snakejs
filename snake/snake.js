@@ -30,7 +30,7 @@ const WWIDTH = 1600,
 			HEADCOLOR = '#823246',
 			TAILCOLOR = '#503296'
 
-let fps = 60,
+let fps = 30,
 		start = 0,
 		leftArrow = keyboard(37),
 		rightArrow = keyboard(39),
@@ -39,7 +39,7 @@ let fps = 60,
 
 let canvas, board, snake = [], enemies = [], obstacles = [], bonus = null, bonusRemaining = 0,
 		food = getRandomCoords(), direction = LEFT, score = 0, record = 0,
-		scoreElement, recordElement, borders = [], path = []
+		scoreElement, recordElement, borders = [], path = [], color = 'white'
 
 const id = Date.now()
 const socket = io({
@@ -47,15 +47,16 @@ const socket = io({
 })
 
 socket.on('state', (state) => {
-	console.log(id, state)
-	obstacles = []
+	// console.log(id, state)
+	obstacles = state.obstacles
 	snake = []
 	enemies = []
-	state.obstacles.forEach((coord) => obstacles.push(coord))
+	food = state.food
+	color = state.snakes.filter((snake) => snake.id === id)[0].color
+	bonus = state.bonus
+	// state.obstacles.forEach((coord) => obstacles.push(coord))
 	state.snakes.filter((snake) => snake.id === id)[0].coords.forEach((coord) => snake.push(coord))
-	let lEnemies = state.snakes.filter((snake) => snake.id !== id)
-	// console.log(lEnemies)
-	lEnemies.forEach((snake) => enemies.push(snake))
+	state.snakes.filter((snake) => snake.id !== id).forEach((snake) => enemies.push(snake))
 })
 
 		  // const form = document.getElementById('form')
@@ -126,7 +127,7 @@ function setup() {
 	fillBorders()
 	// createSnake()
 	// createObstacles()
-	placeFood()
+	// placeFood()
 
 	gameLoop()
 }	
@@ -137,22 +138,6 @@ function createSnake() {
 	snake.push([11,4])
 	snake.push([12,4])
 	snake.push([13,4])
-}
-	
-function placeFood() {
-	food = getRandomCoords()
-	while (includes(obstacles, food) || includes(snake, food)) food = getRandomCoords()
-	placeBonus()
-}
-
-function placeBonus() {
-	if (Random.nextDouble(0, 1) < BONUSCHANCE) {
-		bonus = getRandomCoords()
-		while(includes(obstacles, bonus)
-					|| isEqualCoords(bonus, food)
-					|| includes(snake, bonus)) bonus = getRandomCoords()
-		bonusRemaining = BONUSTIME
-	}
 }
 
 function drawBonus() {
@@ -202,11 +187,6 @@ function drawBorders() {
 		getBoardCell(cell).fillStyle = 'red')
 }
 
-function decreaseBonusTime() {
-	if (bonusRemaining > 0) bonusRemaining -= 1
-	if (bonusRemaining === 0) bonus = null
-}
-
 function createObstacles() {
 	for (let i = 0; i < NUMOBSTACLES; i++) {
 		obstacles.push(getRandomCoords())
@@ -221,12 +201,12 @@ function drawObstacles() {
  
 function drawSnake() {
 	snake.map((cell, index) => {
-		getBoardCell(cell).fillStyle = index === 0 ? HEADCOLOR : TAILCOLOR
+		getBoardCell(cell).fillStyle = index === 0 ? HEADCOLOR : color
 	})
 }
 
 function drawEnemies() {
-	enemies.forEach((snake) => snake.coords.map((cell, index) => getBoardCell(cell).fillStyle = index === 0 ? HEADCOLOR : TAILCOLOR))
+	enemies.forEach((snake) => snake.coords.map((cell, index) => getBoardCell(cell).fillStyle = index === 0 ? HEADCOLOR : snake.color))
 }
 
 function getBoardCell(coords) {
@@ -325,7 +305,6 @@ function gameLoop(timestamp) {
 		drawEnemies()
 		drawFood()
 		drawBonus()
-		decreaseBonusTime()
 		render(canvas)
 		start = timestamp + frameDuration()
 	}
