@@ -1,8 +1,4 @@
-import {makeCanvas, rectangle, stage, draggableSprites, circle, render, text, grid} from './library/display.js'
-import {makePointer, keyboard} from './library/interactive.js'
-import {hitTestCircle} from './library/collision.js'
-import {Random} from './library/random.js'
-import {bfs, includes, isEqualCoords, nodeToPath} from './library/search.js'
+import { game } from './library/engine.js'
 
 const WWIDTH = 1600,
 			WHEIGHT = 800,
@@ -24,15 +20,19 @@ const WWIDTH = 1600,
 			BACKGROUNDCOLOR = 'black',
 			HEADCOLOR = '#823246'
 
+const g = game(WWIDTH, WHEIGHT, setup)
+
 let fps = 60,
 		start = 0,
-		leftArrow = keyboard(37),
-		rightArrow = keyboard(39),
-		upArrow = keyboard(38),
-		downArrow = keyboard(40)
+		leftArrow = g.keyboard(37),
+		rightArrow = g.keyboard(39),
+		upArrow = g.keyboard(38),
+		downArrow = g.keyboard(40)
 
 let canvas, board, mySnake = { id : Date.now() }, enemies = [], obstacles = [],
 		bonus = null, bonusRemaining = 0, food, direction = LEFT
+
+g.start()
 
 const socket = io({
   auth: { id: mySnake.id }
@@ -51,6 +51,13 @@ socket.on('state', (state) => {
 	food = state.food
 
 	bonus = state.bonus
+
+	drawBoard()
+	drawObstacles()	
+	drawMySnake()
+	drawEnemies()
+	drawFood()
+	drawBonus()
 })
 
 leftArrow.press = () => {
@@ -78,16 +85,9 @@ function frameDuration() {
 	return 1000 / fps
 }
 
-setup()
-
 function setup() {
-	canvas = makeCanvas(WWIDTH, WHEIGHT)
-	stage.width = canvas.width
-	stage.height = canvas.height
-
 	drawBackground()
 	createBoard()
-	gameLoop()
 }	
 
 function changeDirection(direction) {
@@ -134,17 +134,17 @@ function drawCell(cell, color) {
 }
 
 function drawBackground() {
-	let border = rectangle(WWIDTH, WHEIGHT, BORDERCOLOR),
-			background = rectangle(
+	let border = g.rectangle(WWIDTH, WHEIGHT, BORDERCOLOR),
+			background = g.rectangle(
 				WWIDTH - BORDER * 2,
 				WHEIGHT - BORDER * 2,
 				BACKGROUNDCOLOR
 			)
-	stage.putCenter(background)
+	g.stage.putCenter(background)
 }
 
 function createBoard() {
-	board = grid(
+	board = g.grid(
 		BOARDWIDTH,
 		BOARDHEIGHT,
 		CELLSIZE,
@@ -152,26 +152,11 @@ function createBoard() {
 		true,
 		0,
 		0,
-		() => rectangle(RECTSIZE, RECTSIZE, RECTCOLOR)
+		() => g.rectangle(RECTSIZE, RECTSIZE, RECTCOLOR)
 	)
-	stage.putCenter(board)
+	g.stage.putCenter(board)
 }
 
 function drawBoard() {
 	board.children.map(cell => cell.fillStyle = RECTCOLOR)
-}
-
-function gameLoop(timestamp) {
-	requestAnimationFrame(gameLoop)
-	const stateHasCome = mySnake.coords !== undefined // waiting for the initial state to come
-	if (timestamp >= start && stateHasCome) {
-		drawBoard()
-		drawObstacles()	
-		drawMySnake()
-		drawEnemies()
-		drawFood()
-		drawBonus()
-		render(canvas)
-		start = timestamp + frameDuration()
-	}
 }
