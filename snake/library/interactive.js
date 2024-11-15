@@ -368,9 +368,9 @@ export function keyboard(keyCode) {
       if (key.isUp && key.press) key.press();
       key.isDown = true;
       key.isUp = false;
+      //Prevent the event's default behavior
+      event.preventDefault();
     }
-    //Prevent the event's default behavior
-    event.preventDefault();
   };
 
   //The `upHandler`
@@ -379,8 +379,8 @@ export function keyboard(keyCode) {
       if (key.isDown && key.release) key.release();
       key.isDown = false;
       key.isUp = true;
+      event.preventDefault();
     }
-    event.preventDefault();
   };
 
   //Attach event listeners

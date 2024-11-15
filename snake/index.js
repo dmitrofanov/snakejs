@@ -7,8 +7,8 @@ import fs from 'fs'
 import path from 'path'
 import http from 'http'
 import { Server } from 'socket.io'
-import { Random } from './random.js'
-import {includes, isEqualCoords} from './search.js'
+import { Random } from './library/random.js'
+import {includes, isEqualCoords} from './library/search.js'
 
 
 // const dir = __dirname
@@ -40,18 +40,17 @@ createObstacles()
 placeFood()
 
 const server = http.createServer	((req, res) => {
-	let file = req.url === '/' ? 'index.html' : path.basename(req.url)//path.join(dir, req.url)
-	// console.log(file)
+	// console.log(req.url)
+	let file = req.url === '/' ? 'index.html' : req.url.substring(1)
+	console.log(file)
 	fs.readFile(file, (err, data) => {
 		if (err) {
 			// console.log(err) // temporary disable favicon errors
 			return
 		}
-		if (file === 'index.html') {
-			res.writeHead(200, {'Content-Type': 'text/html'})
-		} else {
-			res.writeHead(200, {'Content-Type': 'text/javascript'})
-		} 
+		let contentType = path.extname(file)
+		contentType = contentType === '.html' ? 'text/html' : 'text/javascript'
+		res.writeHead(200, {'Content-Type': contentType})
 		res.end(data)
 	})
 })
