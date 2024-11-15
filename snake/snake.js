@@ -31,46 +31,45 @@ let fps = 60,
 		upArrow = keyboard(38),
 		downArrow = keyboard(40)
 
-let canvas, board, snake = [], enemies = [], obstacles = [], bonus = null, bonusRemaining = 0,
-		food, direction = LEFT, color = 'white'
+let canvas, board, mySnake = { id : Date.now() }, enemies = [], obstacles = [],
+		bonus = null, bonusRemaining = 0, food, direction = LEFT
 
-const id = Date.now()
 const socket = io({
-  auth: { id }
+  auth: { id: mySnake.id }
 })
 
 socket.on('state', (state) => {
 	obstacles = state.obstacles
 
-	snake = state.snakes.filter((snake) => snake.id === id)[0].coords
+	const thisSnake = state.snakes.filter((snake) => snake.id === mySnake.id)[0]
+	mySnake.coords = thisSnake.coords
+	mySnake.color = thisSnake.color
+	mySnake.direction = thisSnake.direction
 
-	enemies = []
-	state.snakes.filter((snake) => snake.id !== id).forEach((snake) => enemies.push(snake))
+	enemies = state.snakes.filter((snake) => snake.id !== mySnake.id)
 
 	food = state.food
-
-	color = state.snakes.filter((snake) => snake.id === id)[0].color
 
 	bonus = state.bonus
 })
 
 leftArrow.press = () => {
-	if (direction !== RIGHT && direction !== LEFT) {
+	if (mySnake.direction !== RIGHT && mySnake.direction !== LEFT) {
 		changeDirection(LEFT)
 	}
 }
 rightArrow.press = () => {
-	if (direction !== LEFT && direction !== RIGHT) {
+	if (mySnake.direction !== LEFT && mySnake.direction !== RIGHT) {
 		changeDirection(RIGHT)
 	}
 }
 upArrow.press = () => {
-	if (direction !== DOWN && direction !== UP) {
+	if (mySnake.direction !== DOWN && mySnake.direction !== UP) {
 		changeDirection(UP)
 	}	
 }
 downArrow.press = () => {
-	if (direction !== UP && direction !== DOWN) {
+	if (mySnake.direction !== UP && mySnake.direction !== DOWN) {
 		changeDirection(DOWN)
 	}
 }
@@ -91,39 +90,39 @@ function setup() {
 	gameLoop()
 }	
 
-function changeDirection(direct) {
-	direction = direct
-	socket.emit('change direction', direct)
+function changeDirection(direction) {
+	mySnake.direction = direction
+	socket.emit('change direction', direction)
 }
 
 function drawBonus() {
 	if (bonus !== null) {
-		getBoardCell(bonus).fillStyle = BONUSCOLOR
+		drawCell(bonus, BONUSCOLOR)
 	}
 }
 
 function drawFood() {
-	getBoardCell(food).fillStyle = FOODCOLOR
+	drawCell(food, FOODCOLOR)
 }
 
 function drawObstacles() {
 	obstacles.map(obst => {
-		getBoardCell(obst).fillStyle = OBSTACLECOLOR
+		drawCell(obst, OBSTACLECOLOR)
 	})
 }
  
-function drawSnake() {
-	snake.map((cell, index) => {
-		getBoardCell(cell).fillStyle = index === 0 ? HEADCOLOR : color
+function drawSnake(snake) {
+	snake.coords.map((cell, index) => {
+		getBoardCell(cell).fillStyle = index === 0 ? HEADCOLOR : snake.color
 	})
 }
 
+function drawMySnake() {
+		drawSnake(mySnake)
+}
+
 function drawEnemies() {
-	enemies.forEach((snake) => 
-		snake.coords.map((cell, index) => 
-			drawCell(cell, index === 0 ? HEADCOLOR : snake.color)
-		)
-	)
+	enemies.forEach((snake) => drawSnake(snake))
 }
 
 function getBoardCell(coords) {
@@ -159,15 +158,16 @@ function createBoard() {
 }
 
 function drawBoard() {
-	board.matrix.flat(2).map(cell => cell.fillStyle = RECTCOLOR)
+	board.children.map(cell => cell.fillStyle = RECTCOLOR)
 }
 
 function gameLoop(timestamp) {
 	requestAnimationFrame(gameLoop)
-	if (timestamp >= start) {
+	const stateHasCome = mySnake.coords !== undefined // waiting for the initial state to come
+	if (timestamp >= start && stateHasCome) {
 		drawBoard()
 		drawObstacles()	
-		drawSnake()
+		drawMySnake()
 		drawEnemies()
 		drawFood()
 		drawBonus()

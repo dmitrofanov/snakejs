@@ -8,7 +8,7 @@ import path from 'path'
 import http from 'http'
 import { Server } from 'socket.io'
 import { Random } from './library/random.js'
-import {includes, isEqualCoords} from './library/search.js'
+import { includes, isEqualCoords } from './library/search.js'
 
 
 // const dir = __dirname
@@ -183,7 +183,9 @@ function placeBonus() {
 		state.bonus = getRandomCoords()
 		while(includes(state.obstacles, state.bonus)
 					|| isEqualCoords(state.bonus, state.food)
-					|| state.snakes.some((sn) => includes(sn.coords, state.bonus))) state.bonus = getRandomCoords()
+					|| state.snakes.some((sn) => includes(sn.coords, state.bonus))) { 
+			state.bonus = getRandomCoords()
+		}
 		bonusRemaining = BONUSTIME
 	}
 }
