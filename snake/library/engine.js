@@ -1,25 +1,53 @@
-import {stage,makeCanvas,rectangle,circle,line,text,group,sprite,frame,frames,button,grid,filmstrip,remove,byLayer,buttons,draggableSprites,updateDragAndDrop,render,renderWithInterpolation,particles,emitter,particleEffect,tilingSprite,shakingSprites,shake,progressBar} from './display.js'
+import {
+	stage, makeCanvas, rectangle, circle, line, text, group, sprite, frame, frames,
+	button, grid, filmstrip, remove, byLayer, buttons, draggableSprites, updateDragAndDrop,
+	render, renderWithInterpolation, particles, emitter, particleEffect, tilingSprite,
+	shakingSprites, shake, progressBar
+} from './display.js'
 
 import {makePointer, keyboard} from './interactive.js'
 
-import {assets,outsideBounds,contain,distance,followEase,easeProperty,followConstant,angle,rotateSprite,rotatePoint,randomInt,randomFloat,shoot,wait,move} from './utilities.js'
+import {
+	assets, outsideBounds, contain, distance, followEase, easeProperty,
+	followConstant, angle, rotateSprite, rotatePoint, randomInt, randomFloat, 
+	shoot, wait, move
+} from './utilities.js'
 
-import {tweens,tweenProperty,fadeOut,fadeIn,pulse,slide,breathe,scale,strobe,wobble,removeTween,followCurve,walkPath,walkCurve} from './tween.js'
+import {
+	tweens, tweenProperty, fadeOut, fadeIn, pulse, slide, breathe, scale,
+	strobe, wobble, removeTween, followCurve, walkPath, walkCurve
+} from './tween.js'
 
 import {makeSound, soundEffect} from './sound.js'
 
-import {hitTestPoint,hitTestCircle,circleCollision,movingCircleCollision,multipleCircleCollision,hitTestRectangle,rectangleCollision,hitTestCircleRectangle,hitTestCirclePoint,circleRectangleCollision,circlePointCollision,hit} from './collision.js'
+import {
+	hitTestPoint, hitTestCircle, circleCollision, movingCircleCollision, multipleCircleCollision,
+	hitTestRectangle, rectangleCollision, hitTestCircleRectangle, hitTestCirclePoint,
+	circleRectangleCollision, circlePointCollision, hit
+} from './collision.js'
 
 export class Game {
   constructor(width = 256, height = 256, setup, assetsToLoad, load, fps = 60) {
     //Copy all the imported library code into 
     //properties on this class
-		Object.assign(this, {stage,makeCanvas,rectangle,circle,line,text,group,sprite,frame,frames,button,grid,filmstrip,remove,byLayer,buttons,draggableSprites,updateDragAndDrop,render,renderWithInterpolation,particles,emitter,particleEffect,tilingSprite,shakingSprites,shake,progressBar})
+		Object.assign(this, {stage, makeCanvas, rectangle, circle, line, text, group, sprite,
+			frame, frames, button, grid, filmstrip, remove, byLayer, buttons, draggableSprites,
+			updateDragAndDrop, render, renderWithInterpolation, particles, emitter, particleEffect,
+			tilingSprite, shakingSprites, shake, progressBar})
+
 		Object.assign(this, {makePointer, keyboard})
-		Object.assign(this, {assets,outsideBounds,contain,distance,followEase,easeProperty,followConstant,angle,rotateSprite,rotatePoint,randomInt,randomFloat,shoot,wait,move})
-		Object.assign(this, {tweens,tweenProperty,fadeOut,fadeIn,pulse,slide,breathe,scale,strobe,wobble,removeTween,followCurve,walkPath,walkCurve})
+
+		Object.assign(this, {assets, outsideBounds, contain, distance, followEase, easeProperty,
+			followConstant, angle, rotateSprite, rotatePoint, randomInt, randomFloat, shoot, wait, move})
+
+		Object.assign(this, {tweens, tweenProperty, fadeOut, fadeIn, pulse, slide, breathe, scale,
+			strobe, wobble, removeTween, followCurve, walkPath, walkCurve})
+
 		Object.assign(this, {makeSound, soundEffect})
-		Object.assign(this, {hitTestPoint,hitTestCircle,circleCollision,movingCircleCollision,multipleCircleCollision,hitTestRectangle,rectangleCollision,hitTestCircleRectangle,hitTestCirclePoint,circleRectangleCollision,circlePointCollision,hit})
+
+		Object.assign(this, {hitTestPoint, hitTestCircle, circleCollision, movingCircleCollision,
+			multipleCircleCollision, hitTestRectangle, rectangleCollision, hitTestCircleRectangle,
+			hitTestCirclePoint, circleRectangleCollision, circlePointCollision, hit})
 
 		this.fps = fps
 		this.startTime = 0
