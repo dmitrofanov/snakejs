@@ -29,8 +29,7 @@ let fps = 60,
 		upArrow = g.keyboard(38),
 		downArrow = g.keyboard(40)
 
-let canvas, board, mySnake = { id : Date.now() }, enemies = [], obstacles = [],
-		bonus = null, bonusRemaining = 0, food, direction = LEFT
+let board, mySnake = { id : Date.now() }, enemies = [], obstacles = [], bonus = null, food
 
 g.start()
 

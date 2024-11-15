@@ -32,7 +32,7 @@ initializeState()
 
 const app = express()
 // serve static files
-app.use('/', express.static(__dirname + '/'));
+app.use('/', express.static(__dirname + '/'))
 
 app.get('/', (req, res) => {
 	res.sendFile(join(__dirname, 'index.html'))
