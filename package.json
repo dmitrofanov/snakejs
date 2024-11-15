@@ -2,14 +2,15 @@
   "dependencies": {
     "jquery": "^3.7.1",
     "lodash": "^4.17.21",
-    "socket.io": "^4.8.1"
+    "socket.io": "^4.8.1",
+    "sqlite": "^5.1.1",
+    "sqlite3": "^5.1.7"
   },
   "name": "multiplayer-snake",
   "version": "1.0.0",
   "type": "module",
   "description": "My attempt to a multiplayer game",
   "main": "index.js",
-  "devDependencies": {},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

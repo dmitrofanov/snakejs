@@ -1,12 +1,12 @@
 import { game } from './library/engine.js'
 
-const WWIDTH = 1600,
-			WHEIGHT = 800,
-			BORDER = 12,
-			CELLSIZE = 50,
+const WWIDTH = 800,
+			WHEIGHT = 400,
+			BORDER = 6,
+			CELLSIZE = 25,
 			BOARDWIDTH = WWIDTH / CELLSIZE - 1,
 			BOARDHEIGHT = WHEIGHT / CELLSIZE - 1,
-			PADDING = 4,
+			PADDING = 2,
 			RECTSIZE = CELLSIZE - PADDING,
 			RIGHT = 'right',
 			LEFT = 'left',
@@ -33,6 +33,8 @@ let canvas, board, mySnake = { id : Date.now() }, enemies = [], obstacles = [],
 		bonus = null, bonusRemaining = 0, food, direction = LEFT
 
 g.start()
+
+g.scaleToWindow()
 
 const socket = io({
   auth: { id: mySnake.id }
