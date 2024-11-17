@@ -22,9 +22,7 @@ const WWIDTH = 800,
 
 const g = game(WWIDTH, WHEIGHT, setup)
 
-let fps = 60,
-		start = 0,
-		leftArrow = g.keyboard(37),
+let leftArrow = g.keyboard(37),
 		rightArrow = g.keyboard(39),
 		upArrow = g.keyboard(38),
 		downArrow = g.keyboard(40)
@@ -80,10 +78,6 @@ downArrow.press = () => {
 	if (mySnake.direction !== UP && mySnake.direction !== DOWN) {
 		changeDirection(DOWN)
 	}
-}
-
-function frameDuration() {
-	return 1000 / fps
 }
 
 function setup() {
