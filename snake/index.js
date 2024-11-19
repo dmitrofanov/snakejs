@@ -19,7 +19,6 @@ const WWIDTH = 800,
 			LEFT = 'left',
 			UP = 'up',
 			DOWN = 'down',
-			FPS = 10, // move speed per second
 			BONUSCHANCE = 1/3,
 			BONUSTIME = 30,
 			COLORS = ['green', 'pink', 'orange', 'yellow', 'white', 'salmon', 'Bisque',
@@ -40,17 +39,17 @@ const rooms = new Map()
 
 io.on('connection', (socket) => {
 	const id = socket.handshake.auth.id
-	const room = socket.handshake.auth.room
+	const roomName = socket.handshake.auth.room
 
 	io.in(socket.id).emit('canvas-size', { WWIDTH, WHEIGHT, CELLSIZE, BOARDWIDTH, BOARDHEIGHT })
 
-	socket.join(room)
+	socket.join(roomName)
 
-	if (!rooms.has(room)) {
-		rooms.set(room, newState())
+	if (!rooms.has(roomName)) {
+		rooms.set(roomName, newRoom(roomName))
 	}
 
-	const state = rooms.get(room)
+	const state = rooms.get(roomName).state
 
 	addSnake(state, id)
 
@@ -59,13 +58,9 @@ io.on('connection', (socket) => {
 	})
 
 	socket.on('disconnect', (reason) => {
-		removeSnake(room, state, id)
+		removeSnake(roomName, state, id)
 	})
 })
-
-let timerId = setInterval(() => {
-	calcNextFrameAndSendState()
-}, 1000 / FPS)
 
 server.listen(3000, () => {
 	console.log(`Server running at localhost:3000`)
@@ -83,6 +78,16 @@ function newState() {
 	return state
 }
 
+function newRoom(name) {
+	const room = { name }
+	room.fps = 10 // this should be configurable as all other properties of the game
+	room.state = newState()
+	room.timerId = setInterval(() => {
+		calcNextFrameAndSendState(room)
+	}, 1000 / room.fps)
+	return room
+}
+
 function addSnake(state, id) {
 	const snake = { id }
 	// I'm lazy to implement a random place picker for the snake spawn process
@@ -92,27 +97,26 @@ function addSnake(state, id) {
 	state.snakes.push(snake)
 }
 
-function removeSnake(room, state, id) {
+function removeSnake(roomName, state, id) {
 	state.snakes = enemySnakes(state, { id })
-	cleanRooms(state, room)
+	cleanRooms(state, roomName)
 }
 
 function changeDirection(state, id, direction) {
 	mySnake(state, id).direction = direction
 }
 
-function calcNextFrameAndSendState() {
-	for (const [room, state] of rooms) {
+function calcNextFrameAndSendState(room) {
+	const state = room.state
 
-		allSnakes(state).forEach((snake) => {
-			moveSnake(state, snake)
-			checkCollision(state, snake)
-		})
+	allSnakes(state).forEach((snake) => {
+		moveSnake(state, snake)
+		checkCollision(state, snake)
+	})
 
-		decreaseBonusTime(state)
+	decreaseBonusTime(state)
 
-		io.in(room).emit('state', state)
-	}
+	io.in(room.name).emit('state', state)
 }
 
 function createObstacles(state) {
@@ -247,8 +251,9 @@ function decreaseBonusTime(state) {
 	if (state.bonusRemaining === 0) state.bonus = null
 }
 
-function cleanRooms(state, room) {
+function cleanRooms(state, roomName) {
 	if (state.snakes.length === 0) {
-			rooms.delete(room)
+		clearInterval(rooms.get(roomName).timerId)
+		rooms.delete(roomName)
 	}
 }
