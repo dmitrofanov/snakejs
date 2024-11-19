@@ -33,8 +33,10 @@ g.start()
 
 g.scaleToWindow()
 
+window.addEventListener("resize", event => g.scaleToWindow())
+
 const socket = io({
-  auth: { id: mySnake.id }
+  auth: { id: mySnake.id, room: getRoomName() }
 })
 
 socket.on('state', (state) => {
@@ -154,4 +156,9 @@ function createBoard() {
 
 function drawBoard() {
 	board.children.map(cell => cell.fillStyle = RECTCOLOR)
+}
+
+function getRoomName() {
+	const regex = /\/(?<room>\w*)$/
+	return regex.exec(document.URL).groups.room
 }

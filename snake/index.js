@@ -25,33 +25,39 @@ const WWIDTH = 800,
 			COLORS = ['green', 'pink', 'orange', 'yellow', 'white', 'salmon', 'Bisque',
 								'LemonChiffon', 'Plum', 'Fuchsia', 'DarkViolet', 'Indigo', 'SeaGreen']
 
-let bonusRemaining = 0
-
-const state = {}
-initializeState()
-
 const app = express()
 // serve static files recursively from the root
 app.use(express.static(__dirname))
 
-app.get('/', (req, res) => {
+app.get('/:room', (req, res) => {
 	res.sendFile(join(__dirname, 'index.html'))
 })
 
 const server = createServer(app)
 const io = new Server(server)
 
+const rooms = new Map()
+
 io.on('connection', (socket) => {
 	const id = socket.handshake.auth.id
-	
-	addSnake(id)
+	const room = socket.handshake.auth.room
+
+	socket.join(room)
+
+	if (!rooms.has(room)) {
+		rooms.set(room, newState())
+	}
+
+	const state = rooms.get(room)
+
+	addSnake(state, id)
 
 	socket.on('change direction', (direction) => {
-		changeDirection(id, direction)
+		changeDirection(state, id, direction)
 	})
 
 	socket.on('disconnect', (reason) => {
-		removeSnake(id)
+		removeSnake(room, state, id)
 	})
 })
 
@@ -66,13 +72,16 @@ server.listen(3000, () => {
 // ================================================================================================
 // Functions
 // ================================================================================================
-function initializeState() {
+function newState() {
+	const state = {}
+	state.bonusRemaining = 0
 	state.snakes = []
-	createObstacles()
-	placeFood()
+	createObstacles(state)
+	placeFood(state)
+	return state
 }
 
-function addSnake(id) {
+function addSnake(state, id) {
 	const snake = { id }
 	// I'm lazy to implement a random place picker for the snake spawn process
 	snake.coords = [[2, 2], [3, 2], [4, 2], [5, 2]] // so snakes always spawn in the same place
@@ -81,24 +90,30 @@ function addSnake(id) {
 	state.snakes.push(snake)
 }
 
-function removeSnake(id) {
-	state.snakes = enemySnakes({ id })
+function removeSnake(room, state, id) {
+	state.snakes = enemySnakes(state, { id })
+	cleanRooms(state, room)
 }
 
-function changeDirection(id, direction) {
-	mySnake(id).direction = direction
+function changeDirection(state, id, direction) {
+	mySnake(state, id).direction = direction
 }
 
 function calcNextFrameAndSendState() {
-	allSnakes().forEach((snake) => {
-		moveSnake(snake)
-		checkCollision(snake)
-	})
-	decreaseBonusTime()
-	io.emit('state', state)
+	for (const [room, state] of rooms) {
+
+		allSnakes(state).forEach((snake) => {
+			moveSnake(state, snake)
+			checkCollision(state, snake)
+		})
+
+		decreaseBonusTime(state)
+
+		io.in(room).emit('state', state)
+	}
 }
 
-function createObstacles() {
+function createObstacles(state) {
 	state.obstacles = []
 	for (let i = 0; i < NUMOBSTACLES; i++) {
 		state.obstacles.push(getRandomCoords())
@@ -127,15 +142,15 @@ function moveHead(snake) {
 	snake.coords.splice(0, 0, [x, y])
 }
 
-function onFood(snake) {
+function onFood(state, snake) {
 	return isEqualCoords(head(snake), state.food)
 }
 
-function moveSnake(snake) {
+function moveSnake(state, snake) {
 	moveHead(snake)
-	if (onFood(snake)) {
-		placeFood()
-	} else if (onBonus(snake)) {
+	if (onFood(state, snake)) {
+		placeFood(state)
+	} else if (onBonus(state, snake)) {
 		snake.coords.push(lastSegment(snake))
 		snake.coords.push(lastSegment(snake))
 		state.bonus = null
@@ -144,43 +159,43 @@ function moveSnake(snake) {
 	}
 }
 
-function placeFood() {
+function placeFood(state) {
 	state.food = getRandomCoords()
 	// we don't want the food to be placed inside an obstacle or bodies of snakes
-	while (isInsideObstacles(state.food)
-				|| isInside(allSnakes(), state.food)) {
+	while (isInsideObstacles(state, state.food)
+				|| isInside(allSnakes(state), state.food)) {
 		state.food = getRandomCoords()
 	}
-	placeBonus()
+	placeBonus(state)
 }
 
-function checkCollision(snake) {
+function checkCollision(state, snake) {
 	let truncateSnake = () => { snake.coords = snake.coords.filter((seg, index) => index < 4) }
 	let head = snake.coords[0]
 	if (// check if my head is in my own tail
 			isInTail(snake, head)
 			// check if my head is in an obstacle
-			|| isInsideObstacles(head)
+			|| isInsideObstacles(state, head)
 			// for every enemy snake check if my head is in the enemy snake 
-			|| isInside(enemySnakes(snake), head)) {
+			|| isInside(enemySnakes(state, snake), head)) {
 		truncateSnake()
 	}
 }
 
-function placeBonus() {
+function placeBonus(state) {
 	if (Random.nextDouble(0, 1) < BONUSCHANCE) {
 		state.bonus = getRandomCoords()
 		// we don't want the bonus to be placed inside an obstacle, food, or bodies of snakes
-		while(isInsideObstacles(state.bonus)
+		while(isInsideObstacles(state, state.bonus)
 					|| isEqualCoords(state.bonus, state.food)
-					|| isInside(allSnakes(), state.bonus)) { 
+					|| isInside(allSnakes(state), state.bonus)) { 
 			state.bonus = getRandomCoords()
 		}
-		bonusRemaining = BONUSTIME
+		state.bonusRemaining = BONUSTIME
 	}
 }
 
-function isInsideObstacles(coordinate) {
+function isInsideObstacles(state, coordinate) {
 	return includes(state.obstacles, coordinate)
 }
 
@@ -196,11 +211,11 @@ function isInside(snakes, coordinate) {
 	return snakes.some((snake) => isInBody(snake, coordinate))
 }
 
-function allSnakes() {
+function allSnakes(state) {
 	return state.snakes
 }
 
-function enemySnakes(snake) {
+function enemySnakes(state, snake) {
 	return state.snakes.filter((sn) => sn.id !== snake.id)
 }
 
@@ -216,16 +231,22 @@ function lastSegment(snake) {
 	return snake.coords[snake.coords.length - 1]
 }
 
-function onBonus(snake) {
+function onBonus(state, snake) {
 	if (state.bonus == null) return false
 	return isEqualCoords(state.bonus, snake.coords[0])
 }
 
-function mySnake(id) {
-	return allSnakes().filter((snake) => snake.id === id)[0]
+function mySnake(state, id) {
+	return allSnakes(state).filter((snake) => snake.id === id)[0]
 }
 
-function decreaseBonusTime() {
-	if (bonusRemaining > 0) bonusRemaining -= 1
-	if (bonusRemaining === 0) state.bonus = null
+function decreaseBonusTime(state) {
+	if (state.bonusRemaining > 0) state.bonusRemaining -= 1
+	if (state.bonusRemaining === 0) state.bonus = null
+}
+
+function cleanRooms(state, room) {
+	if (state.snakes.length === 0) {
+			rooms.delete(room)
+	}
 }
