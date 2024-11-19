@@ -1,0 +1,24 @@
+Coord
+	x
+	y
+
+Snake
+	id = string
+	color = string
+	coords = [Coord]
+	direction = string
+
+State
+	food = [Coord]
+	bonus = Coord
+	obstacles = [Coord]
+	snakes = [Snake]
+
+Room
+	wwidth = integer
+	wheight = integer
+	cellsize = integer
+	boardwidth = integer
+	boardheight = integer
+	timerId = setInterval
+	state = State

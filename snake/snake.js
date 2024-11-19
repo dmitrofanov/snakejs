@@ -120,7 +120,7 @@ function drawBonus() {
 }
 
 function drawFood() {
-	drawCell(food, FOODCOLOR)
+	food.forEach((cell) => drawCell(cell, FOODCOLOR))
 }
 
 function drawObstacles() {

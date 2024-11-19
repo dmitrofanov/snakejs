@@ -73,8 +73,12 @@ function newState() {
 	const state = {}
 	state.bonusRemaining = 0
 	state.snakes = []
+	state.food = []
+	state.food_count = 3
 	createObstacles(state)
-	placeFood(state)
+	for (let i = 0; i < state.food_count; i++) {
+		placeFood(state)
+	}
 	return state
 }
 
@@ -149,12 +153,20 @@ function moveHead(snake) {
 }
 
 function onFood(state, snake) {
-	return isEqualCoords(head(snake), state.food)
+	let result = [false, null]
+	state.food.forEach((food) => {
+		if (isEqualCoords(head(snake), food)) {
+			result = [true, food]
+		}
+	})
+	return result
 }
 
 function moveSnake(state, snake) {
 	moveHead(snake)
-	if (onFood(state, snake)) {
+	let [isOnFood, food] = onFood(state, snake)
+	if (isOnFood) {
+		removeFood(state, food)
 		placeFood(state)
 	} else if (onBonus(state, snake)) {
 		snake.coords.push(lastSegment(snake))
@@ -165,13 +177,19 @@ function moveSnake(state, snake) {
 	}
 }
 
+function removeFood(state, food) {
+	state.food.splice(state.food.indexOf(food), 1)
+}
+
 function placeFood(state) {
-	state.food = getRandomCoords()
-	// we don't want the food to be placed inside an obstacle or bodies of snakes
-	while (isInsideObstacles(state, state.food)
-				|| isInside(allSnakes(state), state.food)) {
-		state.food = getRandomCoords()
+	let food = getRandomCoords()
+	// we don't want the food to be placed inside an obstacle, bodies of snakes or other food instances
+	while (isInsideObstacles(state, food)
+				|| isInside(allSnakes(state), food)
+				|| isInsideFood(state, food)) {
+		food = getRandomCoords()
 	}
+	state.food.push(food)
 	placeBonus(state)
 }
 
@@ -193,7 +211,7 @@ function placeBonus(state) {
 		state.bonus = getRandomCoords()
 		// we don't want the bonus to be placed inside an obstacle, food, or bodies of snakes
 		while(isInsideObstacles(state, state.bonus)
-					|| isEqualCoords(state.bonus, state.food)
+					|| isInsideFood(state, state.bonus)
 					|| isInside(allSnakes(state), state.bonus)) { 
 			state.bonus = getRandomCoords()
 		}
@@ -203,6 +221,10 @@ function placeBonus(state) {
 
 function isInsideObstacles(state, coordinate) {
 	return includes(state.obstacles, coordinate)
+}
+
+function isInsideFood(state, coordinate) {
+	return includes(state.food, coordinate)
 }
 
 function isInTail(snake, coordinate) {
