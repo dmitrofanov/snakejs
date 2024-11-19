@@ -424,7 +424,12 @@ export function makeCanvas(
 ) {
 
   //Make the canvas element and add it to the DOM
-  let canvas = document.createElement("canvas");
+  let canvas = document.getElementById("game-canvas")
+	if (canvas) {
+		canvas.remove()
+	}
+  canvas = document.createElement("canvas");
+  canvas.id = "game-canvas"
   canvas.width = width;
   canvas.height = height;
   canvas.style.border = border;

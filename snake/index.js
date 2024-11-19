@@ -12,8 +12,8 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 const WWIDTH = 800,
 			WHEIGHT = 400,
 			CELLSIZE = 25,
-			BOARDWIDTH = WWIDTH / CELLSIZE - 1,
-			BOARDHEIGHT = WHEIGHT / CELLSIZE - 1,
+			BOARDWIDTH = Math.trunc(WWIDTH / CELLSIZE) - 1,
+			BOARDHEIGHT = Math.trunc(WHEIGHT / CELLSIZE) - 1,
 			NUMOBSTACLES = 5,
 			RIGHT = 'right',
 			LEFT = 'left',
@@ -41,6 +41,8 @@ const rooms = new Map()
 io.on('connection', (socket) => {
 	const id = socket.handshake.auth.id
 	const room = socket.handshake.auth.room
+
+	io.in(socket.id).emit('canvas-size', { WWIDTH, WHEIGHT, CELLSIZE, BOARDWIDTH, BOARDHEIGHT })
 
 	socket.join(room)
 

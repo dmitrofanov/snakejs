@@ -1,13 +1,19 @@
 import { game } from './library/engine.js'
 
-const WWIDTH = 800,
-			WHEIGHT = 400,
-			BORDER = 6,
-			CELLSIZE = 25,
-			BOARDWIDTH = WWIDTH / CELLSIZE - 1,
-			BOARDHEIGHT = WHEIGHT / CELLSIZE - 1,
-			PADDING = 2,
-			RECTSIZE = CELLSIZE - PADDING,
+let wwidth,
+		wheight,
+		cellsize,
+		boardwidth,
+		boardheight,
+		isInitialized = false,
+		g,
+		leftArrow,
+		rightArrow,
+		upArrow,
+		downArrow
+
+const	BORDER = 6,
+			PADDING = 1,
 			RIGHT = 'right',
 			LEFT = 'left',
 			UP = 'up',
@@ -20,23 +26,14 @@ const WWIDTH = 800,
 			BACKGROUNDCOLOR = 'black',
 			HEADCOLOR = '#823246'
 
-const g = game(WWIDTH, WHEIGHT, setup)
-
-let leftArrow = g.keyboard(37),
-		rightArrow = g.keyboard(39),
-		upArrow = g.keyboard(38),
-		downArrow = g.keyboard(40)
-
 let board, mySnake = { id : Date.now() }, enemies = [], obstacles = [], bonus = null, food
-
-g.start()
-
-g.scaleToWindow()
-
-window.addEventListener("resize", event => g.scaleToWindow())
 
 const socket = io({
   auth: { id: mySnake.id, room: getRoomName() }
+})
+
+socket.on('canvas-size', (settings) => {
+	initializeGame(settings)
 })
 
 socket.on('state', (state) => {
@@ -53,33 +50,57 @@ socket.on('state', (state) => {
 
 	bonus = state.bonus
 
-	drawBoard()
-	drawObstacles()	
-	drawMySnake()
-	drawEnemies()
-	drawFood()
-	drawBonus()
+	if (isInitialized) {
+		drawBoard()
+		drawObstacles()	
+		drawMySnake()
+		drawEnemies()
+		drawFood()
+		drawBonus()
+	}
 })
 
-leftArrow.press = () => {
-	if (mySnake.direction !== RIGHT && mySnake.direction !== LEFT) {
-		changeDirection(LEFT)
+function initializeGame(settings) {
+	wwidth = settings.WWIDTH
+	wheight = settings.WHEIGHT
+	cellsize = settings.CELLSIZE
+	boardwidth = settings.BOARDWIDTH
+	boardheight = settings.BOARDHEIGHT
+
+	g = game(wwidth, wheight, setup)
+	leftArrow = g.keyboard(37)
+	rightArrow = g.keyboard(39)
+	upArrow = g.keyboard(38)
+	downArrow = g.keyboard(40)
+
+	g.start()
+
+	g.scaleToWindow()
+
+	window.addEventListener("resize", event => g.scaleToWindow())
+
+	leftArrow.press = () => {
+		if (mySnake.direction !== RIGHT && mySnake.direction !== LEFT) {
+			changeDirection(LEFT)
+		}
 	}
-}
-rightArrow.press = () => {
-	if (mySnake.direction !== LEFT && mySnake.direction !== RIGHT) {
-		changeDirection(RIGHT)
+	rightArrow.press = () => {
+		if (mySnake.direction !== LEFT && mySnake.direction !== RIGHT) {
+			changeDirection(RIGHT)
+		}
 	}
-}
-upArrow.press = () => {
-	if (mySnake.direction !== DOWN && mySnake.direction !== UP) {
-		changeDirection(UP)
-	}	
-}
-downArrow.press = () => {
-	if (mySnake.direction !== UP && mySnake.direction !== DOWN) {
-		changeDirection(DOWN)
+	upArrow.press = () => {
+		if (mySnake.direction !== DOWN && mySnake.direction !== UP) {
+			changeDirection(UP)
+		}	
 	}
+	downArrow.press = () => {
+		if (mySnake.direction !== UP && mySnake.direction !== DOWN) {
+			changeDirection(DOWN)
+		}
+	}
+
+	isInitialized = true
 }
 
 function setup() {
@@ -131,10 +152,10 @@ function drawCell(cell, color) {
 }
 
 function drawBackground() {
-	let border = g.rectangle(WWIDTH, WHEIGHT, BORDERCOLOR),
+	let border = g.rectangle(wwidth, wheight, BORDERCOLOR),
 			background = g.rectangle(
-				WWIDTH - BORDER * 2,
-				WHEIGHT - BORDER * 2,
+				wwidth - BORDER * 2,
+				wheight - BORDER * 2,
 				BACKGROUNDCOLOR
 			)
 	g.stage.putCenter(background)
@@ -142,14 +163,14 @@ function drawBackground() {
 
 function createBoard() {
 	board = g.grid(
-		BOARDWIDTH,
-		BOARDHEIGHT,
-		CELLSIZE,
-		CELLSIZE,
+		boardwidth,
+		boardheight,
+		cellsize,
+		cellsize,
 		true,
 		0,
 		0,
-		() => g.rectangle(RECTSIZE, RECTSIZE, RECTCOLOR)
+		() => g.rectangle(rectsize(), rectsize(), RECTCOLOR)
 	)
 	g.stage.putCenter(board)
 }
@@ -161,4 +182,8 @@ function drawBoard() {
 function getRoomName() {
 	const regex = /\/(?<room>\w*)$/
 	return regex.exec(document.URL).groups.room
+}
+
+function rectsize() {
+	return cellsize - PADDING
 }
