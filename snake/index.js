@@ -71,9 +71,9 @@ server.listen(3000, () => {
 // ================================================================================================
 function newState() {
 	const state = {}
-	state.bonusRemaining = 0
 	state.snakes = []
 	state.food = []
+	state.bonuses = []
 	state.food_count = 3
 	createObstacles(state)
 	for (let i = 0; i < state.food_count; i++) {
@@ -165,10 +165,12 @@ function onFood(state, snake) {
 function moveSnake(state, snake) {
 	moveHead(snake)
 	let [isOnFood, food] = onFood(state, snake)
+	let [isOnBonus, bonus] = onBonus(state, snake)
 	if (isOnFood) {
 		removeFood(state, food)
 		placeFood(state)
-	} else if (onBonus(state, snake)) {
+	} else if (isOnBonus) {
+		removeBonus(state, bonus)
 		snake.coords.push(lastSegment(snake))
 		snake.coords.push(lastSegment(snake))
 		state.bonus = null
@@ -179,6 +181,10 @@ function moveSnake(state, snake) {
 
 function removeFood(state, food) {
 	state.food.splice(state.food.indexOf(food), 1)
+}
+
+function removeBonus(state, bonus) {
+	state.bonuses.splice(state.bonuses.indexOf(bonus), 1)
 }
 
 function placeFood(state) {
@@ -208,14 +214,15 @@ function checkCollision(state, snake) {
 
 function placeBonus(state) {
 	if (Random.nextDouble(0, 1) < BONUSCHANCE) {
-		state.bonus = getRandomCoords()
-		// we don't want the bonus to be placed inside an obstacle, food, or bodies of snakes
-		while(isInsideObstacles(state, state.bonus)
-					|| isInsideFood(state, state.bonus)
-					|| isInside(allSnakes(state), state.bonus)) { 
-			state.bonus = getRandomCoords()
+		const bonus = { coord: getRandomCoords(), remaining: BONUSTIME }
+		// we don't want the bonus to be placed inside an obstacle, food, other bonuses or bodies of snakes
+		while(isInsideObstacles(state, bonus.coord)
+					|| isInsideFood(state, bonus.coord)
+					|| isInsideBonuses(state, bonus.coord)
+					|| isInside(allSnakes(state), bonus.coord)) { 
+			bonus.coord = getRandomCoords()
 		}
-		state.bonusRemaining = BONUSTIME
+		state.bonuses.push(bonus)
 	}
 }
 
@@ -225,6 +232,10 @@ function isInsideObstacles(state, coordinate) {
 
 function isInsideFood(state, coordinate) {
 	return includes(state.food, coordinate)
+}
+
+function isInsideBonuses(state, coordinate) {
+	return includes(state.bonuses, coordinate)
 }
 
 function isInTail(snake, coordinate) {
@@ -260,8 +271,11 @@ function lastSegment(snake) {
 }
 
 function onBonus(state, snake) {
-	if (state.bonus == null) return false
-	return isEqualCoords(state.bonus, snake.coords[0])
+	let result = [false, null]
+	state.bonuses.forEach((bonus) => {
+		if (isEqualCoords(bonus.coord, head(snake))) result = [true, bonus]
+	})
+	return result
 }
 
 function mySnake(state, id) {
@@ -269,8 +283,11 @@ function mySnake(state, id) {
 }
 
 function decreaseBonusTime(state) {
-	if (state.bonusRemaining > 0) state.bonusRemaining -= 1
-	if (state.bonusRemaining === 0) state.bonus = null
+	for (let i = state.bonuses.length - 1; i >= 0; i--) {
+		const bonus = state.bonuses[i]
+		if (bonus.remaining > 0) bonus.remaining -= 1
+		if (bonus.remaining === 0) removeBonus(state, bonus)
+	}
 }
 
 function cleanRooms(state, roomName) {
