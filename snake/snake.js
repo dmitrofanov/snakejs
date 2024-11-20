@@ -26,7 +26,8 @@ const	BORDER = 6,
 			BACKGROUNDCOLOR = 'black',
 			HEADCOLOR = '#823246'
 
-let board, mySnake = { id : Date.now() }, enemies = [], obstacles = [], bonuses, food
+let board, mySnake = { id : Date.now() }, enemies = [], obstacles = [], bonuses, food,
+		hasTurnedDuringThisState = false
 
 const socket = io({
   auth: { id: mySnake.id, room: getRoomName() }
@@ -49,6 +50,8 @@ socket.on('state', (state) => {
 	food = state.food
 
 	bonuses = state.bonuses
+
+	hasTurnedDuringThisState = false
 
 	if (isInitialized) {
 		drawBoard()
@@ -109,8 +112,11 @@ function setup() {
 }	
 
 function changeDirection(direction) {
-	mySnake.direction = direction
-	socket.emit('change direction', direction)
+	if (!hasTurnedDuringThisState) {
+		mySnake.direction = direction
+		socket.emit('change direction', direction)
+		hasTurnedDuringThisState = true
+	}
 }
 
 function drawBonuses() {
