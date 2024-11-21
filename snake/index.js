@@ -279,7 +279,7 @@ function onBonus(state, snake) {
 }
 
 function mySnake(state, id) {
-	return allSnakes(state).filter((snake) => snake.id === id)[0]
+	return allSnakes(state).find((snake) => snake.id === id)
 }
 
 function decreaseBonusTime(state) {
