@@ -219,7 +219,7 @@ function placeBonus(state) {
 		while(isInsideObstacles(state, bonus.coord)
 					|| isInsideFood(state, bonus.coord)
 					|| isInsideBonuses(state, bonus.coord)
-					|| isInside(allSnakes(state), bonus.coord)) { 
+					|| isInside(allSnakes(state), bonus.coord)) {
 			bonus.coord = getRandomCoords()
 		}
 		state.bonuses.push(bonus)
@@ -235,7 +235,7 @@ function isInsideFood(state, coordinate) {
 }
 
 function isInsideBonuses(state, coordinate) {
-	return includes(state.bonuses, coordinate)
+	return includes(state.bonuses.map(bonus => bonus.coord), coordinate)
 }
 
 function isInTail(snake, coordinate) {

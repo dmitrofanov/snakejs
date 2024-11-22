@@ -48,8 +48,8 @@ function includes(array, subarray) {
 	).length > 0
 }
 
-function isEqualCoords(c1, c2) {
-	return c1[0] === c2[0] && c1[1] === c2[1]
+function isEqualCoords([x1, y1], [x2, y2]) {
+	return x1 === x2 && y1 === y2
 }
 
 function nodeToPath(node) {
