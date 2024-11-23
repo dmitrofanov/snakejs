@@ -88,7 +88,9 @@ function newRoom(name) {
 	room.state = newState()
 	room.timerId = setInterval(() => {
 		calcNextFrameAndSendState(room)
-	}, 1000 / room.fps)
+		// -4 is used to account for delays in successive setInterval calls
+		// see getIntervalDelay.js
+	}, 1000 / room.fps - 4)
 	return room
 }
 
