@@ -7,7 +7,7 @@ function getIntervalDelay() {
 		start = now
 	}
 	let timerId = setInterval(sheduleMe)
-	setTimeout(() => { clearTimeout(timerId); console.log(times.reduce((acc, val) => acc + val) / times.length); }, 5000)
+	setTimeout(() => { clearInterval(timerId); console.log(times.reduce((acc, val) => acc + val) / times.length); }, 5000)
 }
 
 getIntervalDelay()

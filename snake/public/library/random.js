@@ -35,4 +35,12 @@ class Random {
   static randRange(low, high) {
   	return Random.nextInt(low, high)
   }
+	static randString(length) {
+		const alphabet = [...'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789']
+		const result = []
+		for (let i = 0; i < length; i++) {
+			result.push(this.nextElement(alphabet))
+		}
+		return result.join('')
+	}
 }

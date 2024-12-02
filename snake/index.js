@@ -11,12 +11,13 @@ import bodyParser from 'body-parser'
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
 const WWIDTH = 800,
-			WHEIGHT = 800,
+			WHEIGHT = 400,
 			CELLSIZE = 25,
 			BOARDWIDTH = Math.trunc(WWIDTH / CELLSIZE) - 1,
 			BOARDHEIGHT = Math.trunc(WHEIGHT / CELLSIZE) - 1,
 			NUMFOOD = 3,
 			NUMOBSTACLES = 5,
+			FPS = 10,
 			RIGHT = 'right',
 			LEFT = 'left',
 			UP = 'up',
@@ -30,12 +31,23 @@ const app = express(),
 			rooms = new Map()
 
 app.use(express.static(join(__dirname, 'public')))
-
 app.use(bodyParser.urlencoded({ extended: false }))
 
 app.post('/', (req, res) => {
-	console.log('Body', req.body.width, req.body.height)	
-	res.redirect('/abracadabra')
+	let roomName = Random.randString(8)
+	while (rooms.has(roomName)) {
+		roomName = Random.randString(8)
+	}
+	const b = req.body
+	rooms.set(
+		roomName,
+		newRoom(
+			roomName, b.width, b.height,
+			b.numFood, b.numObstacles,
+			b.bonusChance, b.bonusTime, b.fps
+		)
+	)
+	res.redirect(roomName)
 })
 
 app.get('/', (req, res) => {
@@ -46,28 +58,30 @@ app.get('/:room', (req, res) => {
 	res.sendFile(join(__dirname, 'public', 'game.html'))
 })
 
-app.get('/favicon.ico', (req, res) => {
-	console.log('Azaza')
-	res.sendFile(join(__dirname, 'public', 'game.html'))
-})
-
-
 const server = createServer(app)
 const io = new Server(server)
 
 io.on('connection', (socket) => {
 	const id = socket.handshake.auth.id
 	const roomName = socket.handshake.auth.room
-
-	io.in(socket.id).emit('canvas-size', { WWIDTH, WHEIGHT, CELLSIZE, BOARDWIDTH, BOARDHEIGHT })
-
-	socket.join(roomName)
-
 	if (!rooms.has(roomName)) {
 		rooms.set(roomName, newRoom(roomName))
 	}
+	const room = rooms.get(roomName)
+	const state = room.state
 
-	const state = rooms.get(roomName).state
+	io.in(socket.id).emit(
+		'canvas-size', 
+		{
+			WWIDTH: (room.width + 1) * CELLSIZE, // increase a bit WWIDTH and WHEIGHT
+			WHEIGHT: (room.height + 1) * CELLSIZE, // to provide a padding around the board
+			CELLSIZE,
+			BOARDWIDTH: room.width,
+			BOARDHEIGHT: room.height  
+		}
+	)
+
+	socket.join(roomName)
 
 	addSnake(state, id)
 
@@ -92,19 +106,40 @@ function newState(room) {
 	state.snakes = []
 	state.food = []
 	state.bonuses = []
-	createObstacles(state, room.numObstacles)
+	createObstacles(room, state)
 	for (let i = 0; i < room.numFood; i++) {
-		placeFood(state)
+		placeFood(room, state)
 	}
 	return state
 }
 
 function newRoom(
-	name, width = WWIDTH, height = WHEIGHT, cellSize = CELLSIZE, numFood = NUMFOOD,
-	numObstacles = NUMOBSTACLES, bonusChance = BONUSCHANCE, bonusTime = BONUSTIME
+	name, width, height,
+	numFood, numObstacles,
+	bonusChance, bonusTime, fps
 ) {
-	const room = { name, width, height, cellSize, numObstacles, bonusChance, bonusTime }
-	room.fps = 10 // this should be configurable as all other properties of the game
+	// Assign default values in case they are undefined
+	width = width ?? Math.trunc(WWIDTH / CELLSIZE)
+	height = height ?? Math.trunc(WHEIGHT / CELLSIZE)
+	numFood = numFood ?? NUMFOOD
+	numObstacles = numObstacles ?? NUMOBSTACLES
+	bonusChance = bonusChance ?? BONUSCHANCE
+	bonusTime = bonusTime ?? BONUSTIME
+	fps = fps ?? FPS
+
+	// Cast everything to Number since it might be a string after request.body parsing
+	width = +width
+	height = +height
+	numFood = +numFood
+	numObstacles = +numObstacles
+	bonusChance = +bonusChance
+	bonusTime = +bonusTime
+
+	const room = {
+		name, width, height,
+		numFood, numObstacles,
+		bonusChance, bonusTime, fps
+	}
 	room.state = newState(room)
 	room.timerId = setInterval(() => {
 		calcNextFrameAndSendState(room)
@@ -136,7 +171,7 @@ function calcNextFrameAndSendState(room) {
 	const state = room.state
 
 	allSnakes(state).forEach((snake) => {
-		moveSnake(state, snake)
+		moveSnake(room, state, snake)
 		checkCollision(state, snake)
 	})
 
@@ -145,31 +180,31 @@ function calcNextFrameAndSendState(room) {
 	io.in(room.name).emit('state', state)
 }
 
-function createObstacles(state, numObstacles) {
+function createObstacles(room, state) {
 	state.obstacles = []
-	for (let i = 0; i < numObstacles; i++) {
-		state.obstacles.push(getRandomCoords())
+	for (let i = 0; i < room.numObstacles; i++) {
+		state.obstacles.push(getRandomCoords(room))
 	}
 }
 
-function getRandomCoords() {
-	return [Random.nextInt(0, BOARDWIDTH), Random.nextInt(0, BOARDHEIGHT)]
+function getRandomCoords(room) {
+	return [Random.nextInt(0, room.width), Random.nextInt(0, room.height)]
 }
 
-function moveHead(snake) {
+function moveHead(room, snake) {
 	let [x, y] = head(snake)
 	if (snake.direction === LEFT) {
 		x -= 1
-		x = x === -1 ? BOARDWIDTH - 1 : x
+		x = x === -1 ? room.width - 1 : x
 	} else if (snake.direction === RIGHT) {
 		x += 1
-		x = x === BOARDWIDTH ? 0 : x
+		x = x === room.width ? 0 : x
 	} else if (snake.direction === UP) {
 		y -= 1
-		y = y === -1 ? BOARDHEIGHT - 1 : y
+		y = y === -1 ? room.height - 1 : y
 	} else if (snake.direction === DOWN) {
 		y += 1
-		y = y === BOARDHEIGHT ? 0 : y
+		y = y === room.height ? 0 : y
 	}
 	snake.coords.splice(0, 0, [x, y])
 }
@@ -184,13 +219,13 @@ function onFood(state, snake) {
 	return result
 }
 
-function moveSnake(state, snake) {
-	moveHead(snake)
+function moveSnake(room, state, snake) {
+	moveHead(room, snake)
 	let [isOnFood, food] = onFood(state, snake)
 	let [isOnBonus, bonus] = onBonus(state, snake)
 	if (isOnFood) {
 		removeFood(state, food)
-		placeFood(state)
+		placeFood(room, state)
 	} else if (isOnBonus) {
 		removeBonus(state, bonus)
 		snake.coords.push(lastSegment(snake))
@@ -209,16 +244,17 @@ function removeBonus(state, bonus) {
 	state.bonuses.splice(state.bonuses.indexOf(bonus), 1)
 }
 
-function placeFood(state) {
-	let food = getRandomCoords()
-	// we don't want the food to be placed inside an obstacle, bodies of snakes or other food instances
+function placeFood(room, state) {
+	let food = getRandomCoords(room)
+	// we don't want the food to be placed inside an obstacle,
+	// bodies of snakes or other food instances
 	while (isInsideObstacles(state, food)
 				|| isInside(allSnakes(state), food)
 				|| isInsideFood(state, food)) {
-		food = getRandomCoords()
+		food = getRandomCoords(room)
 	}
 	state.food.push(food)
-	placeBonus(state)
+	placeBonus(room, state)
 }
 
 function checkCollision(state, snake) {
@@ -234,15 +270,16 @@ function checkCollision(state, snake) {
 	}
 }
 
-function placeBonus(state) {
-	if (Random.nextDouble(0, 1) < BONUSCHANCE) {
-		const bonus = { coord: getRandomCoords(), remaining: BONUSTIME }
-		// we don't want the bonus to be placed inside an obstacle, food, other bonuses or bodies of snakes
+function placeBonus(room, state) {
+	if (Random.nextDouble(0, 1) < room.bonusChance) {
+		const bonus = { coord: getRandomCoords(room), remaining: room.bonusTime }
+		// we don't want the bonus to be placed inside an obstacle, food,
+		// other bonuses or bodies of snakes
 		while(isInsideObstacles(state, bonus.coord)
 					|| isInsideFood(state, bonus.coord)
 					|| isInsideBonuses(state, bonus.coord)
 					|| isInside(allSnakes(state), bonus.coord)) {
-			bonus.coord = getRandomCoords()
+			bonus.coord = getRandomCoords(room)
 		}
 		state.bonuses.push(bonus)
 	}
