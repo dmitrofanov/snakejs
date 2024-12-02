@@ -184,7 +184,7 @@ function drawBoard() {
 }
 
 function getRoomName() {
-	const regex = /\/(?<room>\w*)(?:\?.*)?$/
+	const regex = /\/(?<room>\w*)$/
 	return regex.exec(document.URL).groups.room
 }
 
