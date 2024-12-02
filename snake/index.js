@@ -4,16 +4,18 @@ import { fileURLToPath } from 'url'
 import { createServer } from 'http'
 import express from 'express'
 import { Server } from 'socket.io'
-import { Random } from './library/random.js'
-import { includes, isEqualCoords } from './library/search.js'
+import { Random } from './public/library/random.js'
+import { includes, isEqualCoords } from './public/library/search.js'
+import bodyParser from 'body-parser'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
 const WWIDTH = 800,
-			WHEIGHT = 400,
+			WHEIGHT = 800,
 			CELLSIZE = 25,
 			BOARDWIDTH = Math.trunc(WWIDTH / CELLSIZE) - 1,
 			BOARDHEIGHT = Math.trunc(WHEIGHT / CELLSIZE) - 1,
+			NUMFOOD = 3,
 			NUMOBSTACLES = 5,
 			RIGHT = 'right',
 			LEFT = 'left',
@@ -24,18 +26,34 @@ const WWIDTH = 800,
 			COLORS = ['green', 'pink', 'orange', 'yellow', 'white', 'salmon', 'Bisque',
 								'LemonChiffon', 'Plum', 'Fuchsia', 'DarkViolet', 'Indigo', 'SeaGreen']
 
-const app = express()
-// serve static files recursively from the root
-app.use(express.static(__dirname))
+const app = express(),
+			rooms = new Map()
+
+app.use(express.static(join(__dirname, 'public')))
+
+app.use(bodyParser.urlencoded({ extended: false }))
+
+app.post('/', (req, res) => {
+	console.log('Body', req.body.width, req.body.height)	
+	res.redirect('/abracadabra')
+})
+
+app.get('/', (req, res) => {
+	res.sendFile(join(__dirname, 'public', 'landing.html'))
+})
 
 app.get('/:room', (req, res) => {
-	res.sendFile(join(__dirname, 'index.html'))
+	res.sendFile(join(__dirname, 'public', 'game.html'))
 })
+
+app.get('/favicon.ico', (req, res) => {
+	console.log('Azaza')
+	res.sendFile(join(__dirname, 'public', 'game.html'))
+})
+
 
 const server = createServer(app)
 const io = new Server(server)
-
-const rooms = new Map()
 
 io.on('connection', (socket) => {
 	const id = socket.handshake.auth.id
@@ -69,23 +87,25 @@ server.listen(3000, () => {
 // ================================================================================================
 // Functions
 // ================================================================================================
-function newState() {
+function newState(room) {
 	const state = {}
 	state.snakes = []
 	state.food = []
 	state.bonuses = []
-	state.food_count = 3
-	createObstacles(state)
-	for (let i = 0; i < state.food_count; i++) {
+	createObstacles(state, room.numObstacles)
+	for (let i = 0; i < room.numFood; i++) {
 		placeFood(state)
 	}
 	return state
 }
 
-function newRoom(name) {
-	const room = { name }
+function newRoom(
+	name, width = WWIDTH, height = WHEIGHT, cellSize = CELLSIZE, numFood = NUMFOOD,
+	numObstacles = NUMOBSTACLES, bonusChance = BONUSCHANCE, bonusTime = BONUSTIME
+) {
+	const room = { name, width, height, cellSize, numObstacles, bonusChance, bonusTime }
 	room.fps = 10 // this should be configurable as all other properties of the game
-	room.state = newState()
+	room.state = newState(room)
 	room.timerId = setInterval(() => {
 		calcNextFrameAndSendState(room)
 		// -4 is used to account for delays in successive setInterval calls
@@ -125,9 +145,9 @@ function calcNextFrameAndSendState(room) {
 	io.in(room.name).emit('state', state)
 }
 
-function createObstacles(state) {
+function createObstacles(state, numObstacles) {
 	state.obstacles = []
-	for (let i = 0; i < NUMOBSTACLES; i++) {
+	for (let i = 0; i < numObstacles; i++) {
 		state.obstacles.push(getRandomCoords())
 	}
 }
