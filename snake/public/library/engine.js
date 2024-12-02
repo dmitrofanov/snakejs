@@ -210,34 +210,26 @@ export class Game {
     this.canvas.style.transform = "scale(" + scale + ")";
 
     //2. Center the canvas.
-    //Decide whether to center the canvas vertically or horizontally.
-    //Wide canvases should be centered vertically, and 
-    //square or tall canvases should be centered horizontally
-
-    if (this.canvas.width > this.canvas.height) {
-      center = "vertically";
-    } else {
-      center = "horizontally";
+    // Center horizontally    
+    let margin = (window.innerWidth - this.canvas.width * scaleY) / 2;
+    if (margin > 0) {
+			this.canvas.style.marginLeft = margin + "px";
+			this.canvas.style.marginRight = margin + "px";
+			this.canvas.style.marginTop = 0 + "px";
+			this.canvas.style.marginBottom = 0 + "px";
     }
-    
-    //Center horizontally (for square or tall canvases)
-    if (center === "horizontally") {
-      let margin = (window.innerWidth - this.canvas.width * scaleY) / 2;
-      this.canvas.style.marginLeft = margin + "px";
-      this.canvas.style.marginRight = margin + "px";
-    }
-
-    //Center vertically (for wide canvases) 
-    if (center === "vertically") {
-      let margin = (window.innerHeight - this.canvas.height * scaleX) / 2;
-      this.canvas.style.marginTop = margin + "px";
-      this.canvas.style.marginBottom = margin + "px";
+    // Center vertically
+    margin = (window.innerHeight - this.canvas.height * scaleX) / 2;
+    if (margin > 0) {
+			this.canvas.style.marginLeft = 0 + "px";
+			this.canvas.style.marginRight = 0 + "px";
+			this.canvas.style.marginTop = margin + "px";
+			this.canvas.style.marginBottom = margin + "px";
     }
 
     //3. Remove any padding from the canvas and set the canvas
     //display style to "block"
-    this.canvas.style.paddingLeft = 0;
-    this.canvas.style.paddingRight = 0;
+    this.canvas.style.padding = 0;
     this.canvas.style.display = "block";
     
     //4. Set the color of the HTML body background
